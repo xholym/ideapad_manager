@@ -1,3 +1,7 @@
+//
+// This program is not longer ideapad specific. But the name stays so far.
+// TODO: Add icons to items.
+//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -247,4 +251,3 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// TODO: Add icons to items.
