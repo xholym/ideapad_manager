@@ -1,0 +1,9 @@
+[Desktop Entry]
+Terminal=false
+Name=ideapad_manager
+Type=Application
+Categories=TrayIcon;GTK;GNOME
+Exec=bash -c "sleep 5 && /home/mato/bin/ideapad_manager"
+Icon=emblem-system-symbolic
+Comment=My ideapad manager for controling notebook settings
+Hidden=false
