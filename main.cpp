@@ -1,13 +1,13 @@
 //
 // This program is not longer ideapad specific. But the name stays so far.
-// TODO: Add icons to items.
+// TODO: Add custom icons to items and to app tray idicator.
 //
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <gtk/gtk.h>
 #include <ctype.h>
+#include <gtk/gtk.h>
 #include "libappindicator/app-indicator.h"
 
 #define TRAY_ICON "emblem-system-symbolic"
@@ -199,20 +199,42 @@ int main(int argc, char *argv[]) {
     app_indicator_set_status(g_tray, APP_INDICATOR_STATUS_ACTIVE);
 
     // Configure Menu and it's items.
-    {
-        auto menu = gtk_menu_new();
+    auto menu = gtk_menu_new();
 
-        g_refresh_rate_item = gtk_menu_item_new();
+    // Refresh rate item
+    {
+        g_refresh_rate_item = gtk_image_menu_item_new();
+        auto refresh_rate_icon = gtk_image_new_from_icon_name("video-display", GTK_ICON_SIZE_MENU);
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(g_refresh_rate_item), refresh_rate_icon);
         g_signal_connect(g_refresh_rate_item, "activate", G_CALLBACK(toggle_refresh_rate), NULL);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), g_refresh_rate_item);
         gtk_widget_show(g_refresh_rate_item);
+    }
 
+    // Power Profiles items
+    {
         for (int profile = Low_Power; profile <= Performance; profile++) {
 
             char profile_item_lbl[32];
             strcpy(profile_item_lbl, power_profile_name((Power_Profile) profile));
 
-            auto profile_item = gtk_menu_item_new_with_label(profile_item_lbl);
+            auto profile_item = gtk_image_menu_item_new_with_label(profile_item_lbl);
+            GtkWidget* profile_icon;
+            switch (profile) {
+                // TODO: add custom icons for these.
+                case Low_Power:
+                    profile_icon = gtk_image_new_from_icon_name("security-high", GTK_ICON_SIZE_MENU);
+                    break;
+                case Balanced:
+                    profile_icon = gtk_image_new_from_icon_name("security-medium", GTK_ICON_SIZE_MENU);
+                    break;
+                case Performance:
+                    profile_icon = gtk_image_new_from_icon_name("security-low", GTK_ICON_SIZE_MENU);
+                    break;
+                default:
+                    assert(false); // It should never go here.
+            }
+            gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(profile_item), profile_icon);
             g_signal_connect(G_OBJECT(profile_item), "activate", G_CALLBACK(change_profile), (gpointer) &g_profile_values[profile]);
             gtk_menu_shell_append(GTK_MENU_SHELL(menu), profile_item);
 
@@ -222,24 +244,38 @@ int main(int argc, char *argv[]) {
             g_profile_items[profile] = profile_item;
             gtk_widget_show(profile_item);
         }
+    }
 
-        g_battery_con_item = gtk_menu_item_new();
+    // Battery Conservation item
+    {
+        g_battery_con_item = gtk_image_menu_item_new();
+        auto battery_icon = gtk_image_new_from_icon_name("battery", GTK_ICON_SIZE_MENU);
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(g_battery_con_item), battery_icon);
         g_signal_connect(G_OBJECT(g_battery_con_item), "activate", G_CALLBACK(toggle_battery_conservation), NULL);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), g_battery_con_item);
         gtk_widget_show(g_battery_con_item);
+    }
 
-        auto reload_item = gtk_menu_item_new_with_label("Reload");
+    // Reload item
+    {
+        auto reload_item = gtk_image_menu_item_new_with_label("Reload");
+        auto reload_icon = gtk_image_new_from_icon_name("view-refresh", GTK_ICON_SIZE_MENU);
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(reload_item), reload_icon);
         g_signal_connect(G_OBJECT(reload_item), "activate", G_CALLBACK(reload_callback), NULL);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), reload_item);
         gtk_widget_show(reload_item);
+    }
 
-        auto quit_item = gtk_menu_item_new_with_label("Quit");
+    // Quit item
+    {
+        auto quit_item = gtk_image_menu_item_new_with_label("Quit");
+        auto quit_icon = gtk_image_new_from_icon_name("window-close", GTK_ICON_SIZE_MENU);
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(quit_item), quit_icon);
         g_signal_connect(quit_item, "activate", G_CALLBACK(quit), NULL);
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
         gtk_widget_show(quit_item);
-
-        app_indicator_set_menu(g_tray, GTK_MENU(menu));
     }
+    app_indicator_set_menu(g_tray, GTK_MENU(menu));
 
     // Load all ideapad profile data.
     // Set menu item labels.
