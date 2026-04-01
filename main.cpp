@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <cmath>
 #include <gtk/gtk.h>
 #include "libappindicator/app-indicator.h"
 
@@ -75,7 +76,8 @@ const char* get_battery_con_label(bool isOn) {
 int load_refresh_rate() {
     char refresh_rate[3];
     get_command_output("xrandr | rg -o \"\\b\\d+\\.\\d+\\b\\*\"", refresh_rate, 3);
-    return atoi(refresh_rate);
+    auto rr = atoi(refresh_rate);
+    return std::ceil(((float)rr / 10)) * 10;
 }
 
 Power_Profile load_active_profile() {
@@ -103,8 +105,9 @@ bool load_battery_conservation_on() {
 
 static void reload(bool load_values) {
     if (load_values) {
-        g_refresh_rate = load_refresh_rate();
-        g_active_profile = load_active_profile();
+        g_refresh_rate            = load_refresh_rate();
+        g_active_profile          = load_active_profile();
+        g_active_profile          = load_active_profile();
         g_battery_conservation_on = load_battery_conservation_on();
     }
 
@@ -167,7 +170,7 @@ static void change_profile(GtkWidget *item, gpointer data) {
 
     printf("Switching to %s\n", profile_name);
     char command[92];
-    sprintf(command, "pkexec sh -c 'echo %s > /sys/firmware/acpi/platform_profile'", profile_name);
+    sprintf(command, "gksu sh -c 'echo %s > /sys/firmware/acpi/platform_profile'", profile_name);
     system(command);
 
     g_active_profile = profile;
@@ -177,9 +180,9 @@ static void change_profile(GtkWidget *item, gpointer data) {
 static void toggle_battery_conservation(GtkWidget *item, gpointer data) {
     bool turn_on = !g_battery_conservation_on;
     if (turn_on)
-        system("pkexec sh -c 'echo 1 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
+        system("gksu sh -c 'echo 1 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
     else
-        system("pkexec sh -c 'echo 0 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
+        system("gksu sh -c 'echo 0 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
 
     g_battery_conservation_on = !g_battery_conservation_on;
     reload(false);
@@ -188,8 +191,6 @@ static void toggle_battery_conservation(GtkWidget *item, gpointer data) {
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-
-    // TODO: Add icons to menu items.
 
     g_tray = app_indicator_new(
         "ideapad_manager",
@@ -212,39 +213,37 @@ int main(int argc, char *argv[]) {
     }
 
     // Power Profiles items
-    {
-        for (int profile = Low_Power; profile <= Performance; profile++) {
+    for (int profile = Low_Power; profile <= Performance; profile++) {
 
-            char profile_item_lbl[32];
-            strcpy(profile_item_lbl, power_profile_name((Power_Profile) profile));
+        char profile_item_lbl[32];
+        strcpy(profile_item_lbl, power_profile_name((Power_Profile) profile));
 
-            auto profile_item = gtk_image_menu_item_new_with_label(profile_item_lbl);
-            GtkWidget* profile_icon;
-            switch (profile) {
-                // TODO: add custom icons for these.
-                case Low_Power:
-                    profile_icon = gtk_image_new_from_icon_name("security-high", GTK_ICON_SIZE_MENU);
-                    break;
-                case Balanced:
-                    profile_icon = gtk_image_new_from_icon_name("security-medium", GTK_ICON_SIZE_MENU);
-                    break;
-                case Performance:
-                    profile_icon = gtk_image_new_from_icon_name("security-low", GTK_ICON_SIZE_MENU);
-                    break;
-                default:
-                    assert(false); // It should never go here.
-            }
-            gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(profile_item), profile_icon);
-            g_signal_connect(G_OBJECT(profile_item), "activate", G_CALLBACK(change_profile), (gpointer) &g_profile_values[profile]);
-            gtk_menu_shell_append(GTK_MENU_SHELL(menu), profile_item);
-
-            if (profile == g_active_profile)
-                gtk_widget_set_sensitive(profile_item, FALSE);
-
-            g_profile_items[profile] = profile_item;
-            gtk_widget_show(profile_item);
+        auto profile_item = gtk_image_menu_item_new_with_label(profile_item_lbl);
+        GtkWidget* profile_icon;
+        switch (profile) {
+            case Low_Power:
+                profile_icon = gtk_image_new_from_icon_name("security-high", GTK_ICON_SIZE_MENU);
+                break;
+            case Balanced:
+                profile_icon = gtk_image_new_from_icon_name("security-medium", GTK_ICON_SIZE_MENU);
+                break;
+            case Performance:
+                profile_icon = gtk_image_new_from_icon_name("security-low", GTK_ICON_SIZE_MENU);
+                break;
+            default:
+                assert(false);  // It should never go here.
         }
+        gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(profile_item), profile_icon);
+        g_signal_connect(G_OBJECT(profile_item), "activate", G_CALLBACK(change_profile), (gpointer) &g_profile_values[profile]);
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), profile_item);
+
+        if (profile == g_active_profile)
+            gtk_widget_set_sensitive(profile_item, FALSE);
+
+        g_profile_items[profile] = profile_item;
+        gtk_widget_show(profile_item);
     }
+
 
     // Battery Conservation item
     {
