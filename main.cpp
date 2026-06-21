@@ -45,6 +45,7 @@ const char* power_profile_name(Power_Profile profile) {
         case Balanced:    return "Balanced";
         case Performance: return "Performance";
     }
+    return "invalid";
 }
 
 void get_command_output(const char command[], char result[], int size) {
@@ -170,7 +171,7 @@ static void change_profile(GtkWidget *item, gpointer data) {
 
     printf("Switching to %s\n", profile_name);
     char command[92];
-    sprintf(command, "gksu sh -c 'echo %s > /sys/firmware/acpi/platform_profile'", profile_name);
+    sprintf(command, "pkexec sh -c 'echo %s > /sys/firmware/acpi/platform_profile'", profile_name);
     system(command);
 
     g_active_profile = profile;
@@ -180,9 +181,9 @@ static void change_profile(GtkWidget *item, gpointer data) {
 static void toggle_battery_conservation(GtkWidget *item, gpointer data) {
     bool turn_on = !g_battery_conservation_on;
     if (turn_on)
-        system("gksu sh -c 'echo 1 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
+        system("pkexec sh -c 'echo 1 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
     else
-        system("gksu sh -c 'echo 0 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
+        system("pkexec sh -c 'echo 0 > /sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode'");
 
     g_battery_conservation_on = !g_battery_conservation_on;
     reload(false);
